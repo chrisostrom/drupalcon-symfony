@@ -1,0 +1,38 @@
+# Drupalcon Symfony Dev Build
+
+version: '3.1'
+
+services:
+  drupal:
+    image: drupalcon_symfony
+    build: .
+    ports:
+      - 9080:80
+    environment:
+      MYSQL_HOST: mariadb
+      MYSQL_DATABASE: drupalcon_symfony
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    volumes:
+      - ./:/var/www/html
+    restart: always
+
+  mariadb:
+    image: mariadb:10.4
+    environment:
+      MYSQL_ROOT_PASSWORD: drupal
+      MYSQL_DATABASE: drupalcon_symfony
+      MYSQL_USER: drupal
+      MYSQL_PASSWORD: drupal
+    restart: always
+    volumes:
+      - drupalcon_syfony_db:/var/lib/mysql
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 9081:8080
+
+volumes:
+  drupalcon_syfony_db:
