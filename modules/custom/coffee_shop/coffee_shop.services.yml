@@ -1,0 +1,16 @@
+services:
+  coffee_shop.barista:
+    class: Drupal\coffee_shop\Service\Barista
+    arguments: ['@config.factory']
+
+  coffee_shop.coffee_drinker_subscriber:
+    class: Drupal\coffee_shop\EventSubscriber\CoffeeDrinkerSubscriber
+    #Use devel -> container info to get the service ID -- /devel/container/service
+    arguments: ['@messenger']
+    tags:
+      - { name: event_subscriber }
+
+  coffee_shop.route_subscriber:
+    class: Drupal\coffee_shop\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }

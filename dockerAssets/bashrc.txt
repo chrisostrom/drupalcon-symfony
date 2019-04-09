@@ -2,6 +2,6 @@ alias cp='cp -fRp'
 alias l='ls -al'
 alias h='history'
 alias lgrep='ls -al | grep '
-alias lgrepl="ls -l | grep ^d | awk '{print $8,$9}'" #List only file and dir names.
 alias drush="/var/www/html/vendor/bin/drush"
+alias drupal="/var/www/html/vendor/bin/drupal"
 alias cdw="cd /var/www/html"
