@@ -5,8 +5,6 @@ EXPOSE 80
 
 WORKDIR /
 
-#RUN mkdir dockerAssets
-
 COPY ./dockerAssets ./dockerAssets
 
 RUN touch /root/.bashrc \
