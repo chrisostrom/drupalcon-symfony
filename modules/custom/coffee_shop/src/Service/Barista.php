@@ -21,6 +21,7 @@ class Barista {
 
       //$type = $this->config('coffee_shop.default')->get('type');
 
+      //Instead inject $confFactory as dependency.
       $type = $this->configFactory->get('coffee_shop.default')->get('type');
     }
 

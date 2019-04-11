@@ -18,7 +18,8 @@ class CoffeeBlock extends BlockBase {
    * {@inheritdoc}
    */
   public function build() {
-    //Gotta do this the cheating way instead of dependency injecting....
+    //This way is cheating because calling \Drupal::someMethod() is analogous to declaring global variable
+    //But in this instance, have to do it this way, instead of dependency injecting....
     $configFactory = \Drupal::getContainer()->get('config.factory');
     $type = $configFactory->get('coffee_shop.default')->get('type');
     $Barista = \Drupal::getContainer()->get('coffee_shop.barista');

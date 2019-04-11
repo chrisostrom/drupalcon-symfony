@@ -1,0 +1,383 @@
+PUT … item potency… multiple put requests yield the same result.
+POST ….multiple requests may yield different results. If failure, you must be more concerned with a put error.
+
+In symfony/drupal, services hold no data, but do work. Models hold data, but don’t do work.
+
+Containers hold services, and are where you go to get them
+
+Ex you want multiple node objects (model objects), but don’t necessarily need multiple config factory (service) objects, because it would be wasteful….
+
+Symfony dump() … a nice var_dump()
+
+Code Bunk Notes:
+
+Yep! You're looking at the right CodeBunk:
+
+    DrupalCon & Symfony Workshop!!!!! :)
+
+If you don't have the slides yet:
+    http://bit.ly/dcon19-workshop-slides
+
+These notes live at:
+    https://codebunk.com/b/493320300/
+
+
+// file1.php
+
+namespace Bobo\StillCool;
+
+class MyName{}
+
+
+// file2.php
+namespace DrupalCon;
+
+use Bobo\StillCool;
+
+$firstVar = new \Bobo\StillCool\MyName();
+$wombat = new StillCool\MyName();
+
+
+$dt = new \DateTime();
+
+
+./vendor/bin/drupal generate:module
+
+- answer the questions like I did in the slides
+
+- install the module
+
+./vendor/bin/drupal module:install coffee_shop
+
+
+STEP 2
+
+modules/custom/coffee_shop
+
+- create a new coffee_shop.routing.yml file
+
+# coffee_shop.routing.yml
+coffee_shop.coffee.brew:
+  path: /coffee/brew/{type}
+  # controller: Drupal\coffee_shop\Controller\CoffeeController::brewCoffee
+  defaults:
+    _controller: Drupal\coffee_shop\Controller\CoffeeController::brewCoffee
+    type: null
+    _title: 'Make some coffee!'
+  requirements:
+    _permission: 'access content'
+
+
+
+
+  path: /products/{page}
+  defaults:
+    page: 1
+  requirements:
+    _permission: 'access content'
+    page: '\d+'
+
+  path: /products/{slug}
+
+- create a new src/Controller/CoffeeController.php
+
+<?php
+
+namespace Drupal\coffee_shop\Controller;
+
+use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\HttpFoundation\Response;
+
+class CoffeeController extends ControllerBase {
+  public function brewCoffee($type) {
+    //return new Response('Ding! '.$type.' is done!');
+
+    if (!$type) {
+        $type = $this->config('coffee_shop.default')
+            ->get('type');
+    }
+
+    $text = 'Ding! '.$type.' is done!';
+
+    return [
+        '#type' => 'markup',
+        '#markup' => $text,
+    ];
+  }
+}
+
+./vendor/bin/drupal cache:rebuild
+
+Then go to http://localhost:8000/coffee/brew
+
+
+
+./vendor/bin/drupal debug:router coffee_shop.coffee.brew
+
+
+
+
+
+[STEP 06]
+
+./vendor/bin/drupal generate:form:config
+
+-> check out the interactive answers on my slides
+
+
+- once it's done, go find that admin section and
+    give your new "type" field a value and save
+
+-> Manage -> Configuration
+
+
+
+
+
+
+
+--- We'll start back at 1PM
+
+
+
+
+
+
+- create a new Barista class in a src/Service directory
+
+
+<?php
+
+namespace Drupal\coffee_shop\Service;
+
+use Drupal\Core\Config\ConfigFactoryInterface;
+
+class Barista {
+
+    private $configFactory;
+
+    public function __construct(ConfigFactoryInterface $configFactory) {
+      $this->configFactory = $configFactory;
+    }
+
+    public function prepareDrink($type)
+    {
+        if (!$type) {
+            $type = $this->configFactory
+                ->get('coffee_shop.default')
+                ->get('type');
+
+            //$configFactory = \Drupal::getContainer()->get('config.factory');
+            // config.factory
+            //$type = $this->config('coffee_shop.default')
+            //    ->get('type');
+        }
+
+        // ...
+        // all your existing code
+    }
+}
+
+- go copy this function and put it in your class:
+
+    bit.ly/prepare-drink-method
+
+
+use Drupal\coffee_shop\Service\Barista;
+
+class CoffeeController extends ControllerBase {
+  public function brewCoffee($type) {
+    //return new Response('Ding! '.$type.' is done!');
+
+    //$barista = new Barista();
+    $barista = \Drupal::getContainer()
+        ->get('coffee_shop.barista');
+
+    $text = $barista->prepareDrink($type);
+
+    return [
+        '#type' => 'markup',
+        '#markup' => $text,
+    ];
+  }
+}
+
+
+STEP 9:
+
+- create a new coffee_shop.services.yml
+
+services:
+  # this is the machine name
+  coffee_shop.barista:
+    class: Drupal\coffee_shop\Service\Barista
+    arguments: ['@config.factory']
+
+
+./vendor/bin/drupal debug:container config.factory
+
+
+$barista new Barista(\Drupal::getContainer('config.factory'));
+
+// 5
+$sum = add(2, 3);
+
+
+
+
+- core/composer.json
+
+
+
+// from the root of your app
+
+composer require drupal/devel
+
+
+php composer.phar require drupal/devel
+
+
+- modules/contrib/devel
+
+
+
+./vendor/bin/drupal module:install devel webprofiler
+
+
+
+
+
+- create a new CoffeeDrinkerSubscriber class
+
+- inside src/EventSubscriber
+
+
+namespace Drupal\coffee_shop\EventSubscriber;
+
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+use Drupal\Core\Messenger\Messenger;
+use Drupal\Core\Messenger\MessengerInterface;
+
+class CoffeeDrinkerSubscriber implements EventSubscriberInterface
+{
+    private $messenger;
+
+    public function __construct(MessengerInterface $messenger)
+    {
+        $this->messenger = $messenger;
+    }
+
+    public function onKernelRequest()
+    {
+        $this->messenger->addMessage('Hi!');
+    }
+
+    public static function getSubscribedEvents()
+    {
+        return [
+            'kernel.request' => 'onKernelRequest',
+        ];
+    }
+}
+
+parameters:
+  api_key: 123456
+
+services:
+  # this is the machine name
+  coffee_shop.barista:
+    class: Drupal\coffee_shop\Service\Barista
+    arguments: ['@config.factory', '%api_key%']
+
+  coffee_shop.coffee_drinker_subscriber:
+    class: Drupal\coffee_shop\EventSubscriber\CoffeeDrinkerSubscriber
+    arguments: ['@messenger']
+    tags:
+      - { name: event_subscriber }
+
+
+sites/development.services.yml
+sites/default/default.services.yml
+
+
+
+[STEP 14]
+
+- use dependency injection to get the messenger service
+
+    1) Create a __construct() method
+    2) Give it a $messenger argument
+    3) Create a $messenger property and set that in the constructor
+    4) call some method on $this->messenger in onKernelRequest()
+        to set a message, just like before
+    5) Update coffee_shop.services.yaml to pass in the new argument
+
+
+- machine name: messenger
+
+
+
+
+[Step 16]
+
+./vendor/bin/drupal generate:routesubscriber
+
+- this creates a new route subscriber class
+
+- and it *modifies* coffee_shop.services.yml
+
+
+public function alterRoutes(RouteCollection $collection) {
+  // let's mess with the path, just because we CAN!
+  // and for job security!! Muwahahahaha
+
+  $collection->get('coffee_shop.coffee.brew')
+    ->setPath('/seattle/coffee/brew/{type}');
+}
+
+
+
+
+[Step 16]
+
+./vendor/bin/drupal generate:plugin:block
+
+-> follow the slides for answers
+
+
+- then "place" the block in sidebar first
+    -> follow screenshots
+
+
+
+- src/Plugin/Block/CoffeeBlock.php
+
+
+
+- let's cheat! Grab the barista service from the
+    container the cheating way and call prepareDrink()
+    and set its text on the render array
+
+- rebuild cache - blocks are view-cached
+
+
+
+
+- core/core.services.yml
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
